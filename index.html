@@ -1,0 +1,170 @@
+<title>TigDog Posture Labeler</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F2F3F5; --surface:#FFFFFF; --ink:#151A21; --muted:#5F6976; --line:#D9DDE3;
+  --accent:#B96F12; --accent-ink:#FFFFFF; --good:#2C7A5A; --key:#EEF0F3; --video-bg:#0B0D10;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1216; --surface:#171B21; --ink:#E9ECF0; --muted:#98A2AE; --line:#2A313A;
+    --accent:#E0953A; --accent-ink:#14100A; --good:#4FB58A; --key:#20262E; --video-bg:#000000;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1216; --surface:#171B21; --ink:#E9ECF0; --muted:#98A2AE; --line:#2A313A;
+  --accent:#E0953A; --accent-ink:#14100A; --good:#4FB58A; --key:#20262E; --video-bg:#000000;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:14px 32px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:17px;font-weight:600;margin:0;letter-spacing:.01em}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.progress{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+.bar{width:140px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--good);width:0%}
+.stage{background:var(--video-bg);border-radius:8px;overflow:hidden;aspect-ratio:16/9;max-width:100%;display:flex;align-items:center;justify-content:center;position:relative}
+video{width:100%;height:100%;object-fit:contain;display:block;image-rendering:auto}
+.stage .note{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#C8CED6;font-size:14px;padding:16px;text-align:center}
+.meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.meta b{color:var(--ink);font-weight:500}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.keys.secondary{grid-template-columns:repeat(3,1fr)}
+button.k{appearance:none;border:1px solid var(--line);background:var(--key);color:var(--ink);border-radius:8px;padding:12px 8px;font:inherit;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:64px}
+button.k kbd{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;background:var(--surface)}
+button.k:hover{border-color:var(--accent)}
+button.k:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.k.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.k.sel kbd{color:var(--accent-ink);background:transparent;border-color:currentColor}
+button.k.quiet{min-height:48px;background:var(--surface)}
+.help{color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.help span.status{color:var(--good)}
+.help span.status.err{color:#B4432A}
+details{color:var(--muted);font-size:13px}
+details summary{cursor:pointer;color:var(--ink)}
+details ul{margin:8px 0 0 18px;padding:0}
+details li{margin:2px 0}
+@media (max-width:480px){.keys{grid-template-columns:repeat(2,1fr)}.keys.secondary{grid-template-columns:repeat(3,1fr)}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>TigDog Posture Labeler</h1>
+    <div class="progress"><span class="mono" id="count">0 / 0</span><div class="bar"><i id="barfill"></i></div></div>
+  </header>
+
+  <div class="stage">
+    <video id="v" muted loop playsinline autoplay></video>
+    <div class="note" id="note" hidden></div>
+  </div>
+
+  <div class="meta">
+    <span>window <b class="mono" id="wid">–</b></span>
+    <span>your label <b id="cur">none</b></span>
+    <span>speed <b class="mono" id="speedlbl">1×</b></span>
+  </div>
+
+  <div class="keys">
+    <button class="k" data-label="walk" id="k-walk"><span>walk</span><kbd>W</kbd></button>
+    <button class="k" data-label="sit" id="k-sit"><span>sit</span><kbd>S</kbd></button>
+    <button class="k" data-label="lie" id="k-lie"><span>lie</span><kbd>L</kbd></button>
+    <button class="k" data-label="stand" id="k-stand"><span>stand</span><kbd>T</kbd></button>
+  </div>
+  <div class="keys secondary">
+    <button class="k quiet" data-label="other" id="k-other"><span>other / mixed</span><kbd>O</kbd></button>
+    <button class="k quiet" data-label="unclear" id="k-unclear"><span>unclear</span><kbd>U</kbd></button>
+    <button class="k quiet" id="k-skip"><span>skip for now</span><kbd>K</kbd></button>
+  </div>
+  <div class="keys secondary">
+    <button class="k quiet" id="k-back"><span>previous</span><kbd>←</kbd></button>
+    <button class="k quiet" id="k-next"><span>next</span><kbd>→</kbd></button>
+    <button class="k quiet" id="k-speed"><span>half speed</span><kbd>H</kbd></button>
+  </div>
+
+  <div class="help">
+    <span>2-second clip at 25 fps, loops. Label what the dog is doing for most of the clip.</span>
+    <span class="status" id="status"></span>
+  </div>
+
+  <details open>
+    <summary>Labelling guide</summary>
+    <ul>
+      <li><b>walk</b>: any forward locomotion, including trot and run.</li>
+      <li><b>sit</b>: rump on the ground, forelegs extended.</li>
+      <li><b>lie</b>: chest or side on the ground.</li>
+      <li><b>stand</b>: on all four legs, not travelling (turning in place, sniffing, tail-wagging count as stand).</li>
+      <li><b>other / mixed</b>: a clear posture change inside the clip, a jump, being carried, or not one of the four.</li>
+      <li><b>unclear</b>: dog too small, cut off, or blurred to judge.</li>
+      <li>Labels save immediately. Use ← → to revisit and change any label; skipped clips come back at the end.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+/* MANIFEST: filled in by the publishing session. Each entry: {id, shot, start, src} */
+const MANIFEST = /*MANIFEST*/[{"id":"0155_0000","shot":"0155","start":0,"src":"clips/0155_0000.mp4"},{"id":"0120_0550","shot":"0120","start":550,"src":"clips/0120_0550.mp4"},{"id":"0092_0600","shot":"0092","start":600,"src":"clips/0092_0600.mp4"},{"id":"0120_0350","shot":"0120","start":350,"src":"clips/0120_0350.mp4"},{"id":"0207_0050","shot":"0207","start":50,"src":"clips/0207_0050.mp4"},{"id":"0208_0000","shot":"0208","start":0,"src":"clips/0208_0000.mp4"},{"id":"0036_0200","shot":"0036","start":200,"src":"clips/0036_0200.mp4"},{"id":"0190_0050","shot":"0190","start":50,"src":"clips/0190_0050.mp4"},{"id":"0077_0450","shot":"0077","start":450,"src":"clips/0077_0450.mp4"},{"id":"0092_0250","shot":"0092","start":250,"src":"clips/0092_0250.mp4"},{"id":"0077_0050","shot":"0077","start":50,"src":"clips/0077_0050.mp4"},{"id":"0141_0000","shot":"0141","start":0,"src":"clips/0141_0000.mp4"},{"id":"0069_0100","shot":"0069","start":100,"src":"clips/0069_0100.mp4"},{"id":"0175_0000","shot":"0175","start":0,"src":"clips/0175_0000.mp4"},{"id":"0120_0000","shot":"0120","start":0,"src":"clips/0120_0000.mp4"},{"id":"0131_0300","shot":"0131","start":300,"src":"clips/0131_0300.mp4"},{"id":"0151_0000","shot":"0151","start":0,"src":"clips/0151_0000.mp4"},{"id":"0123_0050","shot":"0123","start":50,"src":"clips/0123_0050.mp4"},{"id":"0154_0050","shot":"0154","start":50,"src":"clips/0154_0050.mp4"},{"id":"0066_0050","shot":"0066","start":50,"src":"clips/0066_0050.mp4"}]/*END*/;
+const CLASSES = ['walk','sit','lie','stand','other','unclear'];
+const KEYMAP = {w:'walk', s:'sit', l:'lie', t:'stand', o:'other', u:'unclear'};
+
+const $ = id => document.getElementById(id);
+const v = $('v'), note = $('note'), status = $('status');
+let labels = {};          // id -> {label, at}
+let order = MANIFEST.map((_, i) => i);
+let pos = 0;              // index into order
+let speed = 1;
+
+function setStatus(msg, err){ status.textContent = msg; status.classList.toggle('err', !!err); }
+
+function nextUnlabelled(from){
+  for (let k = 0; k < order.length; k++){ const i = order[(from + k) % order.length]; if (!labels[MANIFEST[i].id]) return (from + k) % order.length; }
+  return from;
+}
+
+function render(){
+  const n = MANIFEST.length, done = MANIFEST.filter(m => labels[m.id]).length;
+  $('count').textContent = `${done} / ${n}`;
+  $('barfill').style.width = n ? (100 * done / n).toFixed(1) + '%' : '0%';
+  if (!n){ note.hidden = false; note.textContent = 'No clips in the manifest yet.'; return; }
+  const m = MANIFEST[order[pos]];
+  $('wid').textContent = `${m.shot} · f${m.start}`;
+  const cur = labels[m.id]?.label || 'none';
+  $('cur').textContent = cur;
+  document.querySelectorAll('button.k[data-label]').forEach(b => b.classList.toggle('sel', b.dataset.label === cur));
+  if (v.dataset.src !== m.src){ v.dataset.src = m.src; v.src = m.src; v.playbackRate = speed; v.play().catch(()=>{}); }
+  note.hidden = true;
+  if (done === n) setStatus('All clips labelled. You can still revisit any with ← →.');
+}
+
+function label(name){
+  const m = MANIFEST[order[pos]]; if (!m) return;
+  labels[m.id] = { label: name, at: new Date().toISOString(), shot: m.shot, start: m.start };
+  render();
+  pos = nextUnlabelled(pos + 1); render();
+}
+function skip(){ pos = nextUnlabelled(pos + 1); render(); }
+function step(d){ pos = (pos + d + order.length) % order.length; render(); }
+function toggleSpeed(){ speed = speed === 1 ? 0.5 : 1; v.playbackRate = speed; $('speedlbl').textContent = speed === 1 ? '1×' : '0.5×'; $('k-speed').querySelector('span').textContent = speed === 1 ? 'half speed' : 'full speed'; }
+
+document.querySelectorAll('button.k[data-label]').forEach(b => b.addEventListener('click', () => label(b.dataset.label)));
+$('k-skip').addEventListener('click', skip);
+$('k-back').addEventListener('click', () => step(-1));
+$('k-next').addEventListener('click', () => step(1));
+$('k-speed').addEventListener('click', toggleSpeed);
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (KEYMAP[k]) { e.preventDefault(); label(KEYMAP[k]); }
+  else if (k === 'k') { e.preventDefault(); skip(); }
+  else if (k === 'h') { e.preventDefault(); toggleSpeed(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  else if (e.key === ' ') { e.preventDefault(); v.currentTime = 0; v.play().catch(()=>{}); }
+});
+
+render();
+</script>
