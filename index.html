@@ -1,4 +1,4 @@
-<title>TigDog Posture Labeler</title>
+<title>Posture Labeler</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -24,7 +24,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{font-size:17px;font-weight:600;margin:0;letter-spacing:.01em}
 .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
-.progress{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+.progress{display:flex;margin-left:auto;align-items:center;gap:10px;color:var(--muted);font-size:13px}
 .bar{width:140px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--good);width:0%}
 .stage{background:var(--video-bg);border-radius:8px;overflow:hidden;aspect-ratio:16/9;max-width:100%;display:flex;align-items:center;justify-content:center;position:relative}
@@ -54,7 +54,6 @@ details li{margin:2px 0}
 
 <div class="wrap">
   <header>
-    <h1>TigDog Posture Labeler</h1>
     <div class="progress"><span class="mono" id="count">0 / 0</span><div class="bar"><i id="barfill"></i></div></div>
   </header>
 
